@@ -1,81 +1,125 @@
 import streamlit as st
 import pandas as pd
 import io
-import traceback
-from datetime import datetime
 
-st.set_page_config(page_title="AP Solutions", layout="centered")
+st.set_page_config(page_title="MIS Automation", layout="wide", page_icon="📊")
 
-st.markdown("# 🧾 AP Solutions")
-st.markdown("### Your Personal Excel MIS Assistant")
+st.markdown("""
+    <style>
+    @import url('https://fonts.googleapis.com/css2?family=Orbitron:wght@800&display=swap');
 
-# Session state to store uploaded data
-if "df" not in st.session_state:
-    st.session_state.df = None
-if "code" not in st.session_state:
-    st.session_state.code = ""
-if "filename" not in st.session_state:
-    st.session_state.filename = "MIS_Report.xlsx"
+    .holo-header {
+        position: relative;
+        font-family: 'Orbitron', sans-serif;
+        font-size: 60px;
+        color: #00ffcc;
+        text-align: center;
+        margin-top: 10px;
+        margin-bottom: 30px;
+        opacity: 0;
+        animation: fadeIn 2s ease forwards, floatHeader 4s ease-in-out infinite;
+        text-shadow:
+            0 0 5px #00ffcc,
+            0 0 10px #00ffcc,
+            0 0 20px #00ffcc,
+            0 0 40px #00ffcc,
+            0 0 80px #00e6b8,
+            0 0 100px #00e6b8;
+        overflow: hidden;
+    }
 
-# File uploader
-uploaded_file = st.file_uploader("Upload your Excel file", type=["xlsx"], label_visibility="visible")
+    .holo-header::before {
+        content: '';
+        position: absolute;
+        top: -100%;
+        left: 0;
+        width: 100%;
+        height: 100%;
+        background: linear-gradient(
+            180deg,
+            transparent 0%,
+            rgba(0, 255, 204, 0.2) 50%,
+            transparent 100%
+        );
+        animation: shimmer 3s linear infinite;
+        pointer-events: none;
+    }
 
-if uploaded_file:
-    try:
-        df = pd.read_excel(uploaded_file)
-        st.session_state.df = df
+    @keyframes floatHeader {
+        0%, 100% { transform: translateY(0); }
+        50% { transform: translateY(-12px); }
+    }
 
-        st.success("File uploaded successfully!")
-        st.markdown("### 📊 File Information:")
-        st.write("**Columns:**", list(df.columns))
-        st.write(f"**Shape:** {df.shape[0]} rows × {df.shape[1]} columns")
+    @keyframes fadeIn {
+        to { opacity: 1; }
+    }
 
-        # Prompt input
-        st.markdown("---")
-        st.markdown("### ✍️ Add prompt")
-        prompt = st.text_area("Describe the steps to generate the MIS report:", height=200)
-        filename = st.text_input("Enter name for the final Excel file (with .xlsx):", "MIS_Report.xlsx")
+    @keyframes shimmer {
+        0% { top: -100%; }
+        100% { top: 100%; }
+    }
 
-        if st.button("Generate Python Script"):
-            try:
-                # Very basic prompt-to-code logic (static example)
-                if "Role is Basic DMA" in prompt:
-                    code = f"""import pandas as pd\n\ndf = pd.read_excel('{uploaded_file.name}')\nfiltered_df = df[df['Role'] == 'Basic DMA'].copy()\nsoft_code_idx = filtered_df.columns.get_loc('Soft Code')\ncol_H_name = filtered_df.columns[7]\nfiltered_df.insert(soft_code_idx + 1, 'length', filtered_df[col_H_name].astype(str).apply(len))\nfiltered_by_length = filtered_df[filtered_df['length'].isin([11, 12, 13, 14, 15])]\nfinal_result = filtered_by_length[filtered_by_length['BUH'] == 'Raoul Kapoor']\nrequired_columns = ['Id', 'Full Name', 'Role', 'Mobile', 'Email', 'Soft Code', 'City', 'State', 'Pincode', 'Reporting Manager', 'Reporting Manager Soft Code', 'Sernior Manager', 'BUH', 'Firm Name', 'Created Date', 'Pan']\nfinal_result = final_result[[col for col in required_columns if col in final_result.columns]]\nfinal_result.to_excel('{filename}', index=False)"""
-                    st.session_state.code = code
-                    st.code(code, language='python')
+    textarea, .stTextArea textarea {
+        background-color: black !important;
+        color: white !important;
+        font-family: 'Courier New', monospace;
+    }
 
-                    confirm = st.radio("Do you want to run this script?", ["Confirm", "Edit the prompt"])
+    .stTextInput input {
+        background-color: black !important;
+        color: white !important;
+    }
+    </style>
 
-                    if confirm == "Confirm":
-                        try:
-                            local_df = st.session_state.df
-                            filtered_df = local_df[local_df['Role'] == 'Basic DMA'].copy()
-                            soft_code_idx = filtered_df.columns.get_loc('Soft Code')
-                            col_H_name = filtered_df.columns[7]
-                            filtered_df.insert(soft_code_idx + 1, 'length', filtered_df[col_H_name].astype(str).apply(len))
-                            filtered_by_length = filtered_df[filtered_df['length'].isin([11, 12, 13, 14, 15])]
-                            final_result = filtered_by_length[filtered_by_length['BUH'] == 'Raoul Kapoor']
-                            required_columns = ['Id', 'Full Name', 'Role', 'Mobile', 'Email', 'Soft Code', 'City', 'State', 'Pincode', 'Reporting Manager', 'Reporting Manager Soft Code', 'Sernior Manager', 'BUH', 'Firm Name', 'Created Date', 'Pan']
-                            final_result = final_result[[col for col in required_columns if col in final_result.columns]]
+    <div class="holo-header">AP Solutions</div>
+""", unsafe_allow_html=True)
 
-                            towrite = io.BytesIO()
-                            final_result.to_excel(towrite, index=False, engine='openpyxl')
-                            towrite.seek(0)
+st.markdown("### Upload Excel File")
+uploaded_file = st.file_uploader("Choose a file", type=["xlsx"])
 
-                            st.success("MIS report generated successfully!")
-                            st.download_button(label="📥 Download MIS Report", data=towrite, file_name=filename, mime="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet")
+if uploaded_file is not None:
+    df = pd.read_excel(uploaded_file)
+    st.write("#### Preview of Uploaded Data:")
+    st.dataframe(df)
 
-                        except Exception as e:
-                            st.error("Error while running script:")
-                            st.exception(traceback.format_exc())
+    prompt = st.text_area("🧠 Prompt to Generate Script:", placeholder="e.g., Filter rows where BUH is 'Raoul Kapoor' and Mobile number length is 11–15...", height=150)
 
-                else:
-                    st.warning("Prompt not recognized. Try describing the logic more clearly.")
+    if "generated_code" not in st.session_state:
+        st.session_state.generated_code = ""
 
-            except Exception as e:
-                st.error("Error while processing prompt:")
-                st.exception(traceback.format_exc())
+    if st.button("Generate Python Code"):
+        if prompt:
+            with st.spinner("Generating code from prompt..."):
+                try:
+                    import openai
+                    openai.api_key = st.secrets["OPENAI_API_KEY"] if "OPENAI_API_KEY" in st.secrets else "sk-REPLACE-YOUR-API-KEY"
 
-    except Exception as e:
-        st.error("Failed to read Excel file:")
-        st.exception(traceback.format_exc())
+                    response = openai.ChatCompletion.create(
+                        model="gpt-3.5-turbo",
+                        messages=[
+                            {"role": "system", "content": "You are a helpful assistant that writes clean, working Python pandas code."},
+                            {"role": "user", "content": f"DataFrame is named df. {prompt}"}
+                        ]
+                    )
+                    code = response.choices[0].message.content.strip("`python\n")
+                    st.session_state.generated_code = code
+                except Exception as e:
+                    st.error(f"Error generating code: {e}")
+
+    edited_script = st.text_area("📝 Edit the Python script if needed", value=st.session_state.generated_code, height=300)
+
+    if st.button("Run Script"):
+        try:
+            local_env = {"df": df.copy(), "pd": pd}
+            exec(edited_script, local_env)
+            result_df = local_env.get("df")
+            st.success("Script executed successfully!")
+            st.write("### Result Preview:")
+            st.dataframe(result_df)
+
+            towrite = io.BytesIO()
+            result_df.to_excel(towrite, index=False, engine='openpyxl')
+            towrite.seek(0)
+            st.download_button("📥 Download Result", towrite, file_name="Filtered_MIS_Result.xlsx", mime="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet")
+        except Exception as e:
+            st.error(f"Error running script: {e}")
